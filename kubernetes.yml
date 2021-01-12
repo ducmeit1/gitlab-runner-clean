@@ -1,0 +1,46 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gitlab-secret
+  labels:
+    app: gitlab-runner-clean-job
+data:
+  GITLAB_ADDRESS: ""
+  GITLAB_TOKEN: ""
+---
+apiVersion: apps/v1
+kind: CronJob
+metadata:
+  name: gitlab-runner-clean-job
+  labels:
+    app: gitlab-runner-clean-job
+spec:
+  schedule: "0 23 * * *"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-client
+  jobTemplate:
+    spec:
+      template:
+      metadata:
+        labels:
+          app: gitlab-runner-clean-job
+      spec:
+        securityContext:
+          fsGroup: 1000
+        containers:
+          - image:  ducmeit1/gitlab-runner-clean-job:latest
+            imagePullPolicy: Always
+            name:  gitlab-runner-clean-job
+            securityContext:
+              capabilities:
+                drop:
+                  - ALL
+              runAsNonRoot: true
+              runAsUser: 1000
+            envFrom:
+            - secretRef:
+                name: gitlab-runner-clean-job
+        restartPolicy: OnFailure
